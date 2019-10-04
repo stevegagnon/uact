@@ -1,0 +1,14 @@
+{
+  "name": "uact",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "parcel index.html"
+  },
+  "author": "steve.gagnon@gmail.com",
+  "devDependencies": {
+    "parcel-bundler": "^1.12.3",
+    "typescript": "^3.6.3"
+  }
+}

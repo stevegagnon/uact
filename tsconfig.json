@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+      "lib": ["dom", "esnext"],
+      "target": "esnext",
+      "outDir": "dist",
+      "moduleResolution": "node",
+      "emitDecoratorMetadata": true,
+      "experimentalDecorators": true,
+      "allowSyntheticDefaultImports": true,
+      "declaration": false,
+      "sourceMap": true,
+      "jsx":"react",
+      "jsxFactory": "createElement"
+  },
+  "exclude": [
+      "node_modules"
+  ]
+}
