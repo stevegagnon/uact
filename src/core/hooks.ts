@@ -34,13 +34,11 @@ export function useReducer(reducer, initialState) {
 }
 
 export function useEffect(callback, state) {
-  const [previous, push] = useHook({
-    attach: () => {
-      if (!previous || argsChanged(previous.state, state)) {
-        callback();
-      }
-    }
-  });
+  const [previous, push, update, defer] = useHook();
+  
+  if (!previous || argsChanged(previous.state, state)) {
+    defer(callback);
+  }
 
   push({ state });
 }

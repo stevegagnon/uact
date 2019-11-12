@@ -6,8 +6,9 @@ interface Ref {
 }
 
 export interface Props {
-  children?: Fiber[];
+  children?: (Fiber | string)[];
   ref?: Ref;
+  nodeValue?: string;
 }
 
 type FiberEffect = (fiber: Fiber, parent?: DomNode) => void;
@@ -19,7 +20,7 @@ export interface Fiber<T = string | Function> {
   child?: Fiber,
   sibling?: Fiber,
   dom?: DomNode,
-  effect?: FiberEffect,
+  pendingEffects?: FiberEffect[],
   props: Props,
   hooks?: any[],
 }

@@ -1,14 +1,5 @@
 import { DomNode, Props, Fiber } from './types';
 
-function createTextElement(text: string): Fiber<undefined> {
-  return {
-    props: {
-      nodeValue: text,
-      children: [],
-    },
-  }
-}
-
 export function createElement<T extends (string | Function)>(
   type: T,
   props: Props,
@@ -21,9 +12,9 @@ export function createElement<T extends (string | Function)>(
     if (type === 'object') {
       childFibers.push(child);
     } else if (type === 'string') {
-      childFibers.push(createTextElement(child as string));
+      childFibers.push(child);
     } else if (type === 'number') {
-      childFibers.push(createTextElement(child.toString()));
+      childFibers.push(child.toString());
     }
   }
 
@@ -37,7 +28,10 @@ export function createElement<T extends (string | Function)>(
 }
 
 export function createDom({ type, props }: Fiber): DomNode {
-  const domNode = typeof type === 'string' ? document.createElement(type) : document.createTextNode('');
+  const domNode = typeof type === 'string' ? document.createElement(type) : document.createTextNode(props.nodeValue || '');
+  if (props && props.ref) {
+    props.ref.current = domNode;
+  }
   return updateDom(domNode, {}, props);
 }
 

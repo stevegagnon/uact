@@ -9,7 +9,6 @@ function Counter() {
   const ref = useRef(null);
 
   useEffect(() => {
-    // console.log(count);
     console.log(count, ref.current);
   }, [count]);
 
