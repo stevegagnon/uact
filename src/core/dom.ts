@@ -1,22 +1,7 @@
-export const TEXT_ELEMENT = Symbol('TEXT_ELEMENT');
+import { DomNode, Props, Fiber } from './types';
 
-export function createElement(type, props, ...children) {
+function createTextElement(text: string): Fiber<undefined> {
   return {
-    type,
-    props: {
-      ...props,
-      children: children.map(child =>
-        typeof child === 'object'
-          ? child
-          : createTextElement(child)
-      ),
-    },
-  }
-}
-
-export function createTextElement(text: string) {
-  return {
-    type: TEXT_ELEMENT,
     props: {
       nodeValue: text,
       children: [],
@@ -24,69 +9,72 @@ export function createTextElement(text: string) {
   }
 }
 
-export function createDom(fiber) {
-  const dom =
-    fiber.type === TEXT_ELEMENT
-      ? document.createTextNode('')
-      : document.createElement(fiber.type)
+export function createElement<T extends (string | Function)>(
+  type: T,
+  props: Props,
+  ...children: (Fiber | number | string)[]
+): Fiber<T> {
+  const childFibers = [];
 
-  updateDom(dom, {}, fiber.props)
+  for (const child of children) {
+    const type = typeof child;
+    if (type === 'object') {
+      childFibers.push(child);
+    } else if (type === 'string') {
+      childFibers.push(createTextElement(child as string));
+    } else if (type === 'number') {
+      childFibers.push(createTextElement(child.toString()));
+    }
+  }
 
-  return dom
+  return {
+    type,
+    props: {
+      ...props,
+      children: childFibers
+    },
+  };
 }
 
+export function createDom({ type, props }: Fiber): DomNode {
+  const domNode = typeof type === 'string' ? document.createElement(type) : document.createTextNode('');
+  return updateDom(domNode, {}, props);
+}
 
-const isEvent = key => key.startsWith('on')
-const isProperty = key => key !== 'children' && !isEvent(key)
-const isNew = (prev, next) => key => prev[key] !== next[key]
-const isGone = (prev, next) => key => !(key in next)
+function toEventName(name: string) {
+  return name.toLowerCase().substring(2);
+}
 
-export function updateDom(dom, prevProps, nextProps) {
-  //Remove old or changed event listeners
-  Object.keys(prevProps)
-    .filter(isEvent)
-    .filter(
-      key =>
-        !(key in nextProps) ||
-        isNew(prevProps, nextProps)(key)
-    )
-    .forEach(name => {
-      const eventType = name
-        .toLowerCase()
-        .substring(2)
-      dom.removeEventListener(
-        eventType,
-        prevProps[name]
-      )
-    })
+export function updateDom(
+  domNode: DomNode,
+  prevProps: Props,
+  nextProps: Props
+): DomNode {
+  for (const key in prevProps) {
+    if (key.startsWith('on')) {
+      if (prevProps[key] !== nextProps[key]) {
+        domNode.removeEventListener(
+          toEventName(key),
+          prevProps[key]
+        )
+      }
+    } else if (key !== 'children' && !(key in nextProps)) {
+      domNode[key] = '';
+    }
+  }
 
-  // Remove old properties
-  Object.keys(prevProps)
-    .filter(isProperty)
-    .filter(isGone(prevProps, nextProps))
-    .forEach(name => {
-      dom[name] = ''
-    })
+  for (const key in nextProps) {
+    if (prevProps[key] !== nextProps[key]) {
+      if (key.startsWith('on')) {
+        domNode.addEventListener(
+          toEventName(key),
+          nextProps[key]
+        );
+      } else if (key !== 'children') {
+        domNode[key] = nextProps[key];
+      }
+    }
+  }
 
-  // Set new or changed properties
-  Object.keys(nextProps)
-    .filter(isProperty)
-    .filter(isNew(prevProps, nextProps))
-    .forEach(name => {
-      dom[name] = nextProps[name]
-    })
-
-  // Add event listeners
-  Object.keys(nextProps)
-    .filter(isEvent)
-    .filter(isNew(prevProps, nextProps))
-    .forEach(name => {
-      const eventType = name
-        .toLowerCase()
-        .substring(2)
-      dom.addEventListener(
-        eventType,
-        nextProps[name]
-      )
-    })
+  return domNode;
 }
