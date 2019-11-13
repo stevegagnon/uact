@@ -1,5 +1,14 @@
 import { DomNode, Props, Fiber } from './types';
 
+function createStringFiber(nodeValue: string) {
+  return {
+    form: updateTextDom,
+    props: {
+      nodeValue
+    },
+  };
+}
+
 export function createElement<T extends (string | Function)>(
   type: T,
   props: Props,
@@ -8,17 +17,15 @@ export function createElement<T extends (string | Function)>(
   const childFibers = [];
 
   for (const child of children) {
-    const type = typeof child;
-    if (type === 'object') {
-      childFibers.push(child);
-    } else if (type === 'string') {
-      childFibers.push(child);
-    } else if (type === 'number') {
-      childFibers.push(child.toString());
+    switch (typeof child) {
+      case 'object': childFibers.push(child); break;
+      case 'string': childFibers.push(createStringFiber(child)); break;
+      case 'number': childFibers.push(createStringFiber(child.toString())); break;
     }
   }
 
   return {
+    form: updateDom,
     type,
     props: {
       ...props,
@@ -27,16 +34,31 @@ export function createElement<T extends (string | Function)>(
   };
 }
 
-export function createDom({ type, props }: Fiber): DomNode {
-  const domNode = typeof type === 'string' ? document.createElement(type) : document.createTextNode(props.nodeValue || '');
-  if (props && props.ref) {
-    props.ref.current = domNode;
+export function createDom(fiber: Fiber<string>): DomNode {
+  if (fiber.form === updateTextDom) {
+    return document.createTextNode(fiber.props.nodeValue);
+  } else {
+    const domNode = document.createElement(fiber.type);
+    if (fiber.props && fiber.props.ref) {
+      fiber.props.ref.current = domNode;
+    }
+    return updateDom(domNode, {}, fiber.props);
   }
-  return updateDom(domNode, {}, props);
 }
 
 function toEventName(name: string) {
   return name.toLowerCase().substring(2);
+}
+
+export function updateTextDom(
+  domNode: DomNode,
+  prevProps: Props,
+  nextProps: Props
+): DomNode {
+  if (prevProps.nodeValue !== nextProps.nodeValue) {
+    domNode.nodeValue = nextProps.nodeValue;
+  }
+  return domNode;
 }
 
 export function updateDom(

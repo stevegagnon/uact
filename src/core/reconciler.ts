@@ -1,4 +1,4 @@
-import { updateDom, createDom } from './dom';
+import { createDom } from './dom';
 import { Fiber, DomNode, Root } from './types';
 
 let workingRoot: Root;
@@ -44,6 +44,8 @@ function commitRoot(root: Root) {
 }
 
 function commitWork(fiber: Fiber) {
+  console.log(fiber);
+  
   if (fiber) {
     let domParentFiber = fiber.parent;
 
@@ -107,46 +109,47 @@ function updateHostComponent(root: Root, fiber: Fiber<string>) {
   reconcileChildren(root, fiber, fiber.props.children);
 }
 
-function reconcileChildren(root: Root, wip: Fiber, elements: (Fiber | string)[]) {
+function reconcileChildren(root: Root, wip: Fiber, children: Fiber[]) {
   let index = 0;
-  let oldFiber = wip.alternate && wip.alternate.child;
+  let alternate = wip.alternate && wip.alternate.child;
   let prevSibling = null;
 
-  if (elements) {
-    while (index < elements.length) {
-      const element = elements[index];
+  if (children) {
+    while (index < children.length) {
+      const element = children[index];
+      let newFiber = null;
 
-      const sameType = typeof element === 'string' ? typeof oldFiber === 'string' : (
-        oldFiber && element && element.type === oldFiber.type
-      );
+      const sameType =  alternate && element && element.type === alternate.type;
 
-      const props = typeof element === 'string' ? {
-        nodeValue: element
-      } : element.props;
-
-      const type = typeof element === 'string' ? null : element.type;
-
-      const newFiber: Fiber = sameType ? {
-        type,
-        props,
-        parent: wip,
-        dom: oldFiber.dom,
-        alternate: oldFiber,
-        pendingEffects: [commitUpdate],
-      } : element ? {
-        type,
-        props,
-        parent: wip,
-        pendingEffects: [commitPlacement]
-      } : null;
-
-
-      if (oldFiber) {
-        if (!sameType) {
-          oldFiber.pendingEffects = [commitDeletion];
-          root.deletions.push(oldFiber);
+      if (sameType) {
+        newFiber = {
+          form: alternate.form,
+          type: alternate.type,
+          props: element.props,
+          parent: wip,
+          dom: alternate.dom,
+          alternate,
+          pendingEffects: [commitUpdate],
+        };
+      } else {
+        if (element) {
+          newFiber = {
+            form: element.form,
+            type: element.type,
+            props: element.props,
+            parent: wip,
+            pendingEffects: [commitPlacement]
+          };
         }
-        oldFiber = oldFiber.sibling;
+
+        if (alternate) {
+            alternate.pendingEffects = [commitDeletion];
+            root.deletions.push(alternate);
+        }
+      }
+
+      if (alternate) {
+        alternate = alternate.sibling;
       }
 
       if (index === 0) {
@@ -160,10 +163,10 @@ function reconcileChildren(root: Root, wip: Fiber, elements: (Fiber | string)[])
     }
   }
 
-  while (oldFiber) {
-    oldFiber.pendingEffects = [commitDeletion];
-    root.deletions.push(oldFiber);
-    oldFiber = oldFiber.sibling;
+  while (alternate) {
+    alternate.pendingEffects = [commitDeletion];
+    root.deletions.push(alternate);
+    alternate = alternate.sibling;
   }
 }
 
@@ -175,7 +178,7 @@ function commitPlacement(fiber: Fiber, parent: DomNode) {
 
 function commitUpdate(fiber: Fiber) {
   if (fiber.dom) {
-    updateDom(
+    fiber.form(
       fiber.dom,
       fiber.alternate.props,
       fiber.props
@@ -198,6 +201,7 @@ export function useHook(events: any = {}): [any, (state: any) => void, () => voi
 
   const update = () => {
     root.wipRoot = {
+      form: root.currentRoot.form,
       dom: root.currentRoot.dom,
       props: root.currentRoot.props,
       alternate: root.currentRoot

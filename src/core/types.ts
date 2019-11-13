@@ -1,4 +1,3 @@
-
 export type DomNode = HTMLElement | Text;
 
 interface Ref {
@@ -6,14 +5,16 @@ interface Ref {
 }
 
 export interface Props {
-  children?: (Fiber | string)[];
-  ref?: Ref;
-  nodeValue?: string;
+  children?: Fiber[],
+  ref?: Ref,
+  nodeValue?: string,
+  [key: string]: any,
 }
 
 type FiberEffect = (fiber: Fiber, parent?: DomNode) => void;
 
 export interface Fiber<T = string | Function> {
+  form?: Function,
   type?: T,
   parent?: Fiber,
   alternate?: Fiber<T>,
@@ -23,6 +24,7 @@ export interface Fiber<T = string | Function> {
   pendingEffects?: FiberEffect[],
   props: Props,
   hooks?: any[],
+  value?: string;
 }
 
 export interface Root {

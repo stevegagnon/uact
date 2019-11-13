@@ -7,6 +7,7 @@ function Header({ n }) {
 function Counter() {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
+  const input = useRef(null);
 
   useEffect(() => {
     console.log(count, ref.current);
@@ -14,8 +15,10 @@ function Counter() {
 
   return (
     <div>
+      <input ref={input}></input>
       <Header n="header"></Header>
       <button ref={ref} onClick={() => setCount(count => count + 1)}>{count}</button>
+      <button onClick={() => input.current.focus()}>focus</button>
       {count % 4 === 3 && (<div>test</div>)}
     </div>
   );
